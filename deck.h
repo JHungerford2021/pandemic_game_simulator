@@ -23,15 +23,11 @@ class Card
 
     public:
 
-        Card(int_fast16_t n)
+        constexpr Card(int_fast16_t n)
             : cardNumber{n}
         {}
 
         Card(const Card& rhs)
-            : cardNumber{rhs.cardNumber}
-        {}
-
-        Card(Card&& rhs)
             : cardNumber{rhs.cardNumber}
         {}
 
@@ -87,16 +83,12 @@ class playerCard : public Card
 
     public:
 
-        playerCard(int_fast16_t n, bool e = 0)
+        constexpr playerCard(int_fast16_t n, bool e = 0)
             :Card{n}, event{e}
         {}
 
-        playerCard(const playerCard& rhs)
+        constexpr playerCard(const playerCard& rhs)
             :Card{rhs.cardNumber}, event{rhs.event}
-        {}
-
-        playerCard(playerCard&& rhs)
-            :Card(rhs.cardNumber), event{rhs.event}
         {}
 
         playerCard& operator = (playerCard&& rhs)
@@ -106,7 +98,7 @@ class playerCard : public Card
             return *this;
         }
 
-        bool isEvent() const
+        virtual bool isEvent() const
         {
             return event;
         }
@@ -123,10 +115,10 @@ class infectionCard : public Card
 
     public:
 
-        infectionCard(int_fast16_t n)
+        constexpr infectionCard(int_fast16_t n)
             :Card{n}
         {}
-
+        
         bool isEvent() const
         {
             return false;
@@ -194,36 +186,6 @@ class playerDeck: public Deck<playerCard>
             }
             return deckSizes;
         }
-
-        /*
-        void getDeckSizesAlternative(std::vector<int_fast16_t>& deckSizes, int_fast16_t numEpidemicCards)
-        {
-            int_fast16_t deckSize = static_cast<int_fast16_t>(cards.size()) - drawIndex;
-            while (numEpidemicCards > 1)
-            {
-                std::cout << "Epidemic Cards at start of loop: " << numEpidemicCards << std::endl;
-                std::cout << "Deck size at start of loop: " << deckSize << std::endl;
-                int_fast16_t minSize = 1;
-                int_fast16_t sumOfMins = ((numEpidemicCards + minSize) * (numEpidemicCards >> 1)) + ((numEpidemicCards & 1) * ((numEpidemicCards + minSize) >> 1));
-                std::cout << "sumOfMins: " << sumOfMins << std::endl;
-                int_fast16_t multiplesThatFit = (deckSize - sumOfMins) / numEpidemicCards;
-                std::cout << "multiplesThatFit: " << multiplesThatFit << std::endl;
-                int_fast16_t remainder = deckSize - (sumOfMins + (multiplesThatFit * numEpidemicCards));
-                std::cout << "remainder: " << remainder << std::endl;
-                int_fast16_t min = numEpidemicCards + multiplesThatFit + remainder;
-                int_fast16_t max = deckSize - sumOfMins + numEpidemicCards;
-                int_fast16_t size{min};
-                if (min != max)
-                {
-                    size = (random() % (max - min)) + min;
-                }
-                std::cout << "Min: " << min << " Max: " << max << " Size: " << size << "\n\n";
-                deckSizes[--numEpidemicCards] = size;
-                deckSize -= size;
-            }
-            deckSizes[0] = deckSize;
-        }
-        */
 
     protected:
 

@@ -68,7 +68,7 @@ class Game
         playerDeck<gameDifficulty> pDeck;
         infectionDeck<gameDifficulty> iDeck;
 
-        void initializeInfectionRates()
+        constexpr void initializeInfectionRates()
         {
             int_fast16_t currentRate = minInfectionRate;
             int_fast16_t indiciesToGo = firstRateIncreaseIndex;

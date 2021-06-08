@@ -1,12 +1,12 @@
 #include "gameConstants.h"
 #include "deck.h"
 #include <unordered_set>
-
+/*
 class Player
 {
     private:
 
-        std::unordered_set<const Card&, cardHash> cards;
+        std::unordered_set<const Card&> cards;
         Cities location{Cities::atlanta};
 
     public:
@@ -35,3 +35,4 @@ class Player
             cards.erase(card);
         }
 };
+*/
