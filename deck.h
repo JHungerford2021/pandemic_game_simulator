@@ -8,105 +8,46 @@
 #ifndef DECK
 #define DECK
 
-class abstractCard
-{
-    friend std::ostream& operator << (std::ostream& lhs, abstractCard* rhs)
-    {
-        return rhs->write(lhs);
-    }
-    
-    protected:
-
-        int_fast16_t cardNumber;
-
-        abstractCard(int_fast16_t n)
-            :cardNumber {n}
-        {}
-
-        virtual std::ostream& write (std::ostream& lhs) = 0;
-        
-    public:
-
-        virtual int_fast16_t getNumber()
-        {
-            return cardNumber;
-        }
-
-        virtual bool isEvent() = 0;
-};
-
 class Card
 {
     friend std::ostream& operator << (std::ostream& lhs, const Card& rhs)
     {
-        return lhs << rhs.p;
+        return rhs.write(lhs);
     }
 
-    friend bool operator == (const Card& lhs, const Card& rhs)
-    {
-        return lhs.p == rhs.p;
-    }
+    protected:
 
-    friend bool operator != (const Card& lhs, const Card& rhs)
-    {
-        return lhs.p != rhs.p;
-    }
+        int_fast16_t cardNumber;
 
-    private:
-
-        abstractCard* p;
+        virtual std::ostream& write (std::ostream& lhs) const = 0;
 
     public:
 
-        Card(abstractCard* point)
-            : p{point}
+        Card(int_fast16_t n)
+            : cardNumber{n}
         {}
 
         Card(const Card& rhs)
-        {
-            this->p = rhs.p;
-        }
+            : cardNumber{rhs.cardNumber}
+        {}
 
         Card(Card&& rhs)
-        {
-            this->p = rhs.p;
-            rhs.p = nullptr;
-        }
+            : cardNumber{rhs.cardNumber}
+        {}
 
-        Card& operator= (const Card& rhs)
+        Card& operator = (Card&& rhs)
         {
-            delete this->p;
-            this->p = rhs.p;
+            cardNumber = rhs.cardNumber;
             return *this;
         }
 
-        Card& operator= (Card&& rhs)
+        template <typename T>
+        T getNumber() const
         {
-            delete this->p;
-            this->p = rhs.p;
-            rhs.p = nullptr;
-            return *this;
-        }
-        
-        ~Card()
-        {
-            delete p;
+            return static_cast<T>(cardNumber);
         }
 
-        bool operator==(const Card& rhs) const
-        {
-            return this->p == rhs.p;
-        }
-
-        int_fast16_t getNumber() const
-        {
-            return p->getNumber();
-        }
-
-        bool isEvent() const
-        {
-            return p->isEvent();
-        }
+        virtual bool isEvent() const = 0;
 };
 
 class cardHash
@@ -116,12 +57,11 @@ class cardHash
         size_t operator()(const Card& c) const
         {
             size_t result = c.isEvent() ? numCityCards : 0;
-            return result + c.getNumber();
-
+            return result + c.getNumber<int_fast16_t>();
         }
 };
 
-class playerCard : public abstractCard
+class playerCard : public Card
 {
     private:
 
@@ -129,7 +69,7 @@ class playerCard : public abstractCard
 
     protected:
 
-        virtual std::ostream& write (std::ostream& lhs)
+        virtual std::ostream& write (std::ostream& lhs) const
         {
             if (cardNumber == epidemicCard)
             {
@@ -148,38 +88,35 @@ class playerCard : public abstractCard
     public:
 
         playerCard(int_fast16_t n, bool e = 0)
-            :abstractCard{n}, event{e}
+            :Card{n}, event{e}
+        {}
+
+        playerCard(const playerCard& rhs)
+            :Card{rhs.cardNumber}, event{rhs.event}
         {}
 
         playerCard(playerCard&& rhs)
-            :abstractCard(rhs.cardNumber), event{rhs.event}
+            :Card(rhs.cardNumber), event{rhs.event}
         {}
 
-        playerCard& operator= (const playerCard& rhs)
+        playerCard& operator = (playerCard&& rhs)
         {
             cardNumber = rhs.cardNumber;
             event = rhs.event;
             return *this;
         }
 
-        playerCard& operator= (playerCard&& rhs)
-        {
-            cardNumber = rhs.cardNumber;
-            event = rhs.event;
-            return *this;
-        }
-
-        bool isEvent()
+        bool isEvent() const
         {
             return event;
         }
 };
 
-class infectionCard : public abstractCard
+class infectionCard : public Card
 {
     protected:
 
-        virtual std::ostream& write (std::ostream& lhs)
+        virtual std::ostream& write (std::ostream& lhs) const
         {
             return lhs << cardNumber << ' ';
         }
@@ -187,16 +124,16 @@ class infectionCard : public abstractCard
     public:
 
         infectionCard(int_fast16_t n)
-            :abstractCard{n}
+            :Card{n}
         {}
 
-        bool isEvent()
+        bool isEvent() const
         {
             return false;
         }
 };
 
-
+template <class C>
 class Deck 
 {
     
@@ -206,7 +143,7 @@ class Deck
 
     protected:
 
-        std::vector<Card> cards;
+        std::vector<C> cards;
         std::mt19937_64& random;
         int_fast16_t drawIndex{0};
         
@@ -216,45 +153,49 @@ class Deck
             cards.reserve(size);
         }
 
-        virtual std::ostream& write(std::ostream& lhs) = 0;
+        virtual std::ostream& write(std::ostream& lhs) const = 0;
 
     public:
 
-        virtual const Card& drawCard()
+        virtual const C& drawCard()
         {
-            const Card& result = *(cards.crbegin() + drawIndex);
+            const C& result = *(cards.crbegin() + drawIndex);
             ++drawIndex;
             return result;
         }
 };
 
-class playerDeck : public Deck
+template <int_fast16_t gameDifficulty>
+class playerDeck: public Deck<playerCard>
 {
     private:
 
-        void getDeckSizes(std::vector<int_fast16_t>& deckSizes, int_fast16_t numEpidemicCards)
+        std::array<int_fast16_t, gameDifficulty> getDeckSizes() const
         {
+            std::array<int_fast16_t, gameDifficulty> deckSizes;
             int_fast16_t deckSize = static_cast<int_fast16_t>(cards.size()) - drawIndex;
             int_fast16_t minSize = 1;
-            int_fast16_t sumOfMins = ((numEpidemicCards + minSize) * (numEpidemicCards >> 1)) + ((numEpidemicCards & 1) * ((numEpidemicCards + minSize) >> 1));
-            int_fast16_t multiplesThatFit = (deckSize - sumOfMins) / numEpidemicCards;
+            int_fast16_t sumOfMins = ((gameDifficulty + minSize) * (gameDifficulty >> 1)) + ((gameDifficulty & 1) * ((gameDifficulty + minSize) >> 1));
+            int_fast16_t multiplesThatFit = (deckSize - sumOfMins) / gameDifficulty;
             minSize += multiplesThatFit;
             std::iota(deckSizes.begin(), deckSizes.end(), minSize);
-            int_fast16_t remainder = deckSize - (sumOfMins + (multiplesThatFit * numEpidemicCards));
+            int_fast16_t remainder = deckSize - (sumOfMins + (multiplesThatFit * gameDifficulty));
             std::unordered_set<int_fast16_t> takenValues;
             while (remainder > 0)
             {
-                int_fast16_t deckSelection = random() % numEpidemicCards;
+                int_fast16_t deckSelection = random() % gameDifficulty;
                 while (takenValues.find(deckSelection) != takenValues.end())
                 {
-                    deckSelection = random() % numEpidemicCards;
+                    deckSelection = random() % gameDifficulty;
                 }
                 takenValues.insert(deckSelection);
                 ++deckSizes[deckSelection];
                 --remainder;
             }
+            return deckSizes;
         }
 
+        /*
         void getDeckSizesAlternative(std::vector<int_fast16_t>& deckSizes, int_fast16_t numEpidemicCards)
         {
             int_fast16_t deckSize = static_cast<int_fast16_t>(cards.size()) - drawIndex;
@@ -282,10 +223,11 @@ class playerDeck : public Deck
             }
             deckSizes[0] = deckSize;
         }
+        */
 
     protected:
 
-        virtual std::ostream& write(std::ostream& lhs)
+        virtual std::ostream& write(std::ostream& lhs) const
         {
             std::stringstream result{};
             auto begin = cards.begin();
@@ -300,30 +242,28 @@ class playerDeck : public Deck
 
     public:
 
-        playerDeck(std::mt19937_64& r, int_fast16_t numEpidemicCards)
-            : Deck{r, numPlayerCards + numEpidemicCards}
+        playerDeck(std::mt19937_64& r)
+            : Deck<playerCard>{r, numPlayerCards + gameDifficulty}
         {
-            playerCard* epidemic = new playerCard{epidemicCard};
-            for (int_fast16_t i = 0; i < numEpidemicCards; ++i)
+            for (int_fast16_t i = 0; i < gameDifficulty; ++i)
             {
-                cards.emplace_back(Card{epidemic});
+                cards.emplace_back(playerCard{epidemicCard});
             }
             for (int_fast16_t i = 0; i < numCityCards; ++i)
             {
-                cards.emplace_back(Card{new playerCard{i}});
+                cards.emplace_back(playerCard{i});
             }
             for (int_fast16_t i = 0; i < numEventCards; ++i)
             {
-                cards.emplace_back(Card{new playerCard{i, 1}});
+                cards.emplace_back(playerCard{i, 1});
             }
-            std::shuffle(cards.begin() + numEpidemicCards, cards.end(), random);
+            std::shuffle(cards.begin() + gameDifficulty, cards.end(), random);
         }
 
-        void prepareDeck(int_fast16_t numEpidemicCards)
+        void prepareDeck()
         {
-            std::vector<int_fast16_t> deckSizes(numEpidemicCards);
-            getDeckSizes(deckSizes, numEpidemicCards);
-            int_fast16_t index = numEpidemicCards - 1;
+            std::array<int_fast16_t, gameDifficulty> deckSizes = getDeckSizes();
+            int_fast16_t index = gameDifficulty - 1;
             auto miniDeckStart = cards.rbegin() + drawIndex;
             while (index >= 0)
             {
@@ -336,14 +276,15 @@ class playerDeck : public Deck
         }
 };
 
-class infectionDeck : public Deck
+template<int_fast16_t gameDifficulty>
+class infectionDeck : public Deck<infectionCard>
 {
     private:
         int_fast16_t epidemicIndex{0};
 
     protected:
 
-        virtual std::ostream& write(std::ostream& lhs)
+        virtual std::ostream& write(std::ostream& lhs) const
         {
             std::stringstream result{};
             auto begin = cards.begin() + epidemicIndex;
@@ -358,12 +299,12 @@ class infectionDeck : public Deck
 
     public:
 
-        infectionDeck(std::mt19937_64& r, int_fast16_t numEpidemicCards)
-            : Deck{r, numCityCards + numEpidemicCards}
+        infectionDeck(std::mt19937_64& r)
+            : Deck<infectionCard>{r, numCityCards + gameDifficulty}
         {
             for (int_fast16_t i = 0; i < numCityCards; ++i)
             {
-                cards.emplace_back(Card{new infectionCard{i}});
+                cards.emplace_back(infectionCard{i});
             }
             std::shuffle(cards.begin(), cards.end(), random);
         }
@@ -372,29 +313,17 @@ class infectionDeck : public Deck
         {
             cards.emplace_back(cards[epidemicIndex]);
             ++drawIndex;
-            return static_cast<Cities>(cards[epidemicIndex++].getNumber());
-        }
-
-        std::vector<Card>::reverse_iterator getIndexOfCityToRemove(Cities cityToRemove)
-        {
-            auto begin = cards.rbegin();
-            bool found = static_cast<Cities>((*begin).getNumber()) == cityToRemove;
-            while (!found)
-            {
-                ++begin;
-                found = static_cast<Cities>((*begin).getNumber()) == cityToRemove; 
-            }
-            return begin;
-
+            return cards[epidemicIndex++].getNumber<Cities>();
         }
 
         void intensify(Cities cityToRemove, bool removeCity)
         {
             if (removeCity)
             {
-                if (cityToRemove != static_cast<Cities>(cards[epidemicIndex - 1].getNumber()))
+                if (cityToRemove != cards[epidemicIndex - 1].getNumber<Cities>())
                 {
-                    auto removedCity = getIndexOfCityToRemove(cityToRemove);
+                    auto removedCity = std::find_if(cards.rbegin(), cards.rbegin() + drawIndex
+                                                    , [&](const infectionCard& c){ return c.getNumber<Cities>() == cityToRemove; });
                     std::swap(*removedCity, *cards.rbegin());
                 }
                 cards.pop_back();

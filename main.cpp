@@ -20,6 +20,6 @@ inline int getIntFromUser(const std::string& message)
 
 int main(int argc, char *argv[]) 
 {
-    Game g{0, "CMQR", 6, 4};
+    Game g{"CMQR"};
     return 0;
 }

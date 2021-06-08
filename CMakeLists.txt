@@ -10,5 +10,10 @@ target_include_directories(pandemic_game_simulator PUBLIC
                            "${PROJECT_BINARY_DIR}"
                            )
 
+add_executable(pandemic_game_tests tests.cpp)
+target_include_directories(pandemic_game_simulator PUBLIC
+                           "${PROJECT_BINARY_DIR}"
+                           )
+
 message("CXX Standard: ${CMAKE_CXX_STANDARD}")
 message("CMAKE_INCLUDE_PATH: ${CMAKE_INCLUDE_PATH}")

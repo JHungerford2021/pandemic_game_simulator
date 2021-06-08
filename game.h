@@ -5,13 +5,13 @@
 #include <string>
 #include <sstream>
 
+template <int_fast64_t seed = 0, int_fast16_t gameDifficulty = 6, int_fast16_t numPlayers = 4>
 class Game
 {
     private:
 
-        std::mt19937_64 random;
-        std::string roles;
-        const std::vector<City> cities
+        std::mt19937_64 random{seed};
+        const std::array<City, numCities> cities
         {
             City(std::unordered_set<Cities>{Cities::chicago, Cities::washington, Cities::miami}, Color::blue),
 	        City(std::unordered_set<Cities>{Cities::atlanta, Cities::montreal, Cities::sanFrancisco, Cities::losAngeles, Cities::mexicoCity}, Color::blue),
@@ -62,13 +62,11 @@ class Game
 	        City(std::unordered_set<Cities>{Cities::hongKong, Cities::manila, Cities::osaka, Cities::shanghai}, Color::red),
 	        City(std::unordered_set<Cities>{Cities::sanFrancisco, Cities::osaka, Cities::seoul, Cities::shanghai}, Color::red)
         };
-        std::vector<int_fast16_t> infectionRates;
+        std::array<int_fast16_t, maxOutbreaks + gameDifficulty + 1> infectionRates;
         std::unordered_set<Cities> researchStations { Cities::atlanta };
         std::array<Disease, numDiseases> diseases{Color::blue, Color::yellow, Color::black, Color::red};
-        playerDeck pDeck;
-        infectionDeck iDeck;
-        std::int_fast16_t gameDifficulty;
-        std::int_fast16_t numPlayers;
+        playerDeck<gameDifficulty> pDeck;
+        infectionDeck<gameDifficulty> iDeck;
 
         void initializeInfectionRates()
         {
@@ -81,7 +79,7 @@ class Game
             {
                 std::fill(beginRange, endRange, currentRate);
                 currentRate += infectionRateIncrease;
-                beginRange += indiciesToGo;
+                beginRange = endRange;
                 if (indiciesToGo - rateIncreaseRate > 0)
                 {
                     indiciesToGo -= rateIncreaseRate;
@@ -118,7 +116,7 @@ class Game
                 for (int_fast16_t city = 0; city < citiesPerWave; ++city)
                 {
                     const Card& iCard = iDeck.drawCard();
-                    City target = cities[iCard.getNumber()];
+                    City target = cities[iCard.getNumber<int_fast16_t>()];
                     target.addInfection(strongestWave - wave, target.color);
                 }
             }
@@ -126,14 +124,13 @@ class Game
 
     public:
 
-        Game(int_fast64_t seed, const std::string& roleString, int_fast16_t difficulty, int_fast16_t players)
-            : random{seed}, roles{roleString}, infectionRates(maxOutbreaks + gameDifficulty + 1)
-            , gameDifficulty{difficulty}, numPlayers{players}, pDeck{random, difficulty}, iDeck{random, difficulty}
+        Game(const std::string& roleString)
+            : pDeck{random}, iDeck{random}
         {
             Timer t;
             initializeInfectionRates();
             dealPlayerCards();
-            pDeck.prepareDeck(gameDifficulty);
+            pDeck.prepareDeck();
             initialInfections();
             std::cout << "Time elapsed: " << t.elapsed() << " seconds\n";
         }
