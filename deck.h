@@ -25,15 +25,25 @@ class Card
 
     public:
 
-        constexpr Card(int_fast16_t n)
+        constexpr Card() noexcept
+            : cardNumber{epidemicCard}
+        {}
+
+        constexpr Card(int_fast16_t n) noexcept
             : cardNumber{n}
         {}
 
-        constexpr Card(const Card& rhs)
+        constexpr Card(const Card& rhs) noexcept
             : cardNumber{rhs.cardNumber}
         {}
 
-        Card& operator = (Card&& rhs)
+        Card& operator = (const Card& rhs) noexcept
+        {
+            cardNumber = rhs.cardNumber;
+            return *this;
+        }
+
+        Card& operator = (Card&& rhs) noexcept
         {
             cardNumber = rhs.cardNumber;
             return *this;
@@ -72,6 +82,10 @@ class playerCard : public Card
 
     public:
 
+        constexpr playerCard()
+            :event{0}
+        {}
+
         constexpr playerCard(int_fast16_t n, bool e = 0)
             :Card{n}, event{e}
         {}
@@ -85,6 +99,14 @@ class playerCard : public Card
             cardNumber = rhs.cardNumber;
             event = rhs.event;
             return *this;
+        }
+
+        std::size_t operator() (const playerCard&) noexcept const
+        {
+            std::size_t result{cardNumber};
+            if (event)
+                result += numCityCards;
+            return result;
         }
 
         bool isEvent() const
@@ -103,6 +125,9 @@ class infectionCard : public Card
         }
 
     public:
+
+        constexpr infectionCard()
+        {}
 
         constexpr infectionCard(int_fast16_t n)
             :Card{n}
@@ -126,99 +151,33 @@ class Deck
 
         virtual std::ostream& write(std::ostream& lhs) const = 0;
 
-    protected:
-
-        int_fast16_t drawIndex{0};
-
     public:
 
-        virtual const C& drawCard() = 0;
+        virtual const C& drawCard() noexcept = 0;
+        virtual void beginningShuffle() = 0;
 };
 
-template <int_fast16_t gameDifficulty>
 class playerDeck: public Deck<playerCard>
 {
     private:
 
-        std::vector<playerCard> cards
-        {
-            playerCard{0},
-            playerCard{1},
-            playerCard{2},
-            playerCard{3},
-            playerCard{4},
-            playerCard{5},
-            playerCard{6},
-            playerCard{7},
-            playerCard{8},
-            playerCard{9},
-            playerCard{10},
-            playerCard{11},
-            playerCard{12},
-            playerCard{13},
-            playerCard{14},
-            playerCard{15},
-            playerCard{16},
-            playerCard{17},
-            playerCard{18},
-            playerCard{19},
-            playerCard{20},
-            playerCard{21},
-            playerCard{22},
-            playerCard{23},
-            playerCard{24},
-            playerCard{25},
-            playerCard{26},
-            playerCard{27},
-            playerCard{28},
-            playerCard{29},
-            playerCard{30},
-            playerCard{31},
-            playerCard{32},
-            playerCard{33},
-            playerCard{34},
-            playerCard{35},
-            playerCard{36},
-            playerCard{37},
-            playerCard{38},
-            playerCard{39},
-            playerCard{40},
-            playerCard{41},
-            playerCard{42},
-            playerCard{43},
-            playerCard{44},
-            playerCard{45},
-            playerCard{46},
-            playerCard{47},
-            playerCard{0, 1},
-            playerCard{1, 1},
-            playerCard{2, 1},
-            playerCard{3, 1},
-            playerCard{4, 1}
-        };
+        std::array<playerCard, numPlayerCards + gameDifficulty> cards;
         std::mt19937_64& random;
+        int_fast16_t drawIndex{numPlayerCards + gameDifficulty - 1};
 
-        std::array<int_fast16_t, gameDifficulty> getDeckSizes() const
+        constexpr std::array<int_fast16_t, gameDifficulty> getDeckSizes() const
         {
             std::array<int_fast16_t, gameDifficulty> deckSizes;
-            int_fast16_t deckSize = numPlayerCards + gameDifficulty - drawIndex;
+            int_fast16_t deckSize = drawIndex + 1;
             int_fast16_t minSize = 1;
             int_fast16_t sumOfMins = ((gameDifficulty + minSize) * (gameDifficulty >> 1)) + ((gameDifficulty & 1) * ((gameDifficulty + minSize) >> 1));
             int_fast16_t multiplesThatFit = (deckSize - sumOfMins) / gameDifficulty;
             minSize += multiplesThatFit;
             std::iota(deckSizes.begin(), deckSizes.end(), minSize);
             int_fast16_t remainder = deckSize - (sumOfMins + (multiplesThatFit * gameDifficulty));
-            std::unordered_set<int_fast16_t> takenValues;
             while (remainder > 0)
             {
-                int_fast16_t deckSelection = random() % gameDifficulty;
-                while (takenValues.find(deckSelection) != takenValues.end())
-                {
-                    deckSelection = random() % gameDifficulty;
-                }
-                takenValues.insert(deckSelection);
-                ++deckSizes[deckSelection];
-                --remainder;
+                ++deckSizes[--remainder];
             }
             return deckSizes;
         }
@@ -226,7 +185,8 @@ class playerDeck: public Deck<playerCard>
         std::ostream& write(std::ostream& lhs) const
         {
             std::stringstream result{};
-            for (auto begin = cards.begin() + drawIndex, end = cards.end(); begin != end; ++begin)
+            result << "playerDeck: ";
+            for (auto begin = cards.begin(), end = cards.begin() + drawIndex + 1; begin != end; ++begin)
             {
                 result << *(begin);
             }
@@ -241,9 +201,16 @@ class playerDeck: public Deck<playerCard>
         {
             for (int_fast16_t i = 0; i < gameDifficulty; ++i)
             {
-                cards.emplace_back(playerCard{epidemicCard});
+                cards[0] = playerCard{epidemicCard};
             }
-            std::shuffle(cards.begin(), cards.begin() + numPlayerCards, random);
+            for (int_fast16_t i = 0; i < numCityCards; ++i)
+            {
+                cards[i + gameDifficulty] = playerCard{i};
+            }
+            for (int_fast16_t i = 0; i < numEventCards; ++i)
+            {
+                cards[numCityCards + gameDifficulty + i] = playerCard{i, 1};
+            }
         }
 
         void prepareDeck() noexcept
@@ -251,13 +218,13 @@ class playerDeck: public Deck<playerCard>
             std::array<int_fast16_t, gameDifficulty> deckSizes = getDeckSizes();
             int_fast16_t index = gameDifficulty - 1;
             auto miniDeckStart = cards.begin() + drawIndex;
-            auto epidemicCardIterator = cards.rbegin();
+            auto epidemicCardIterator = cards.begin();
             while (index >= 0)
             {
                 int_fast16_t deckSize = deckSizes[index];
                 int_fast16_t swapIndex = random() % deckSize;
-                std::swap(*(epidemicCardIterator + index), *(miniDeckStart + swapIndex));
-                miniDeckStart += deckSize;
+                std::swap(*(epidemicCardIterator + index), *(miniDeckStart - swapIndex));
+                miniDeckStart -= deckSize;
                 --index;
             }
         }
@@ -265,74 +232,36 @@ class playerDeck: public Deck<playerCard>
         const playerCard& drawCard() noexcept
         {
             const playerCard& result = *(cards.begin() + drawIndex);
-            ++drawIndex;
+            --drawIndex;
             return result;
-        }  
+        }
+
+        void beginningShuffle() noexcept
+        {
+            std::shuffle(cards.begin() + gameDifficulty, cards.end(), random);
+        }
 };
 
-template<int_fast16_t gameDifficulty>
 class infectionDeck : public Deck<infectionCard>
 {
     private:
 
-        std::vector<infectionCard> cards
-        {
-            infectionCard{0},
-            infectionCard{1},
-            infectionCard{2},
-            infectionCard{3},
-            infectionCard{4},
-            infectionCard{5},
-            infectionCard{6},
-            infectionCard{7},
-            infectionCard{8},
-            infectionCard{9},
-            infectionCard{10},
-            infectionCard{11},
-            infectionCard{12},
-            infectionCard{13},
-            infectionCard{14},
-            infectionCard{15},
-            infectionCard{16},
-            infectionCard{17},
-            infectionCard{18},
-            infectionCard{19},
-            infectionCard{20},
-            infectionCard{21},
-            infectionCard{22},
-            infectionCard{23},
-            infectionCard{24},
-            infectionCard{25},
-            infectionCard{26},
-            infectionCard{27},
-            infectionCard{28},
-            infectionCard{29},
-            infectionCard{30},
-            infectionCard{31},
-            infectionCard{32},
-            infectionCard{33},
-            infectionCard{34},
-            infectionCard{35},
-            infectionCard{36},
-            infectionCard{37},
-            infectionCard{38},
-            infectionCard{39},
-            infectionCard{40},
-            infectionCard{41},
-            infectionCard{42},
-            infectionCard{43},
-            infectionCard{44},
-            infectionCard{45},
-            infectionCard{46},
-            infectionCard{47}
-        };
+        std::array<infectionCard, numCityCards + gameDifficulty> cards;
         std::mt19937_64& random;
+        int_fast16_t drawIndex{numCityCards - 1};
         int_fast16_t epidemicIndex{0};
+        int_fast16_t backOfDeck{numCityCards};
 
         std::ostream& write(std::ostream& lhs) const
         {
             std::stringstream result{};
-            for (auto begin = cards.begin() + epidemicIndex, end = cards.end() - drawIndex; begin != end; ++begin)
+            result << "infectionDeck: ";
+            for (auto begin = cards.begin() + epidemicIndex, end = cards.begin() + drawIndex + 1; begin != end; ++begin)
+            {
+                result << *(begin);
+            }
+            result << "\ndiscard: ";
+            for (auto begin = cards.begin() + drawIndex + 1, end = cards.begin() + backOfDeck; begin != end; ++begin)
             {
                 result << *(begin);
             }
@@ -345,13 +274,20 @@ class infectionDeck : public Deck<infectionCard>
         constexpr infectionDeck(std::mt19937_64& r) noexcept
             : random{r}
         {
-            std::shuffle(cards.begin(), cards.end(), random);
+            for (int_fast16_t i = 0; i < numCityCards; ++i)
+            {
+                cards[i] = infectionCard{i};
+            }
+            for (int_fast16_t i = 0; i < gameDifficulty; ++i)
+            {
+                cards[i + numCityCards] = infectionCard{epidemicCard};
+            }
         }
 
         const Cities infect() noexcept
         {
-            cards.emplace_back(cards[epidemicIndex]);
-            ++drawIndex;
+            cards[backOfDeck] = cards[epidemicIndex];
+            ++backOfDeck;
             return cards[epidemicIndex++].getNumber<Cities>();
         }
 
@@ -359,24 +295,25 @@ class infectionDeck : public Deck<infectionCard>
         {
             if (removeCity)
             {
-                if (cityToRemove != cards[epidemicIndex - 1].getNumber<Cities>())
-                {
-                    auto removedCity = std::find_if(cards.rbegin(), cards.rbegin() + drawIndex
+                auto removedCity = std::find_if(cards.begin() + drawIndex + 1, cards.begin() + backOfDeck
                                                     , [&](const infectionCard& c){ return c.getNumber<Cities>() == cityToRemove; });
-                    std::swap(*removedCity, *cards.rbegin());
-                }
-                cards.pop_back();
-                --drawIndex;
+                --backOfDeck;
+                std::swap(*removedCity, *(cards.begin() + backOfDeck));
             }
-            std::shuffle(cards.rbegin(), cards.rbegin() + drawIndex, random);
-            drawIndex = 0;
+            std::shuffle(cards.begin() + drawIndex + 1, cards.begin() + backOfDeck, random);
+            drawIndex = backOfDeck - 1;
         }
 
         const infectionCard& drawCard() noexcept
         {
-            const infectionCard& result = *(cards.rbegin() + drawIndex);
-            ++drawIndex;
+            const infectionCard& result = *(cards.begin() + drawIndex);
+            --drawIndex;
             return result;
-        }   
+        }
+
+        void beginningShuffle() noexcept
+        {
+            std::shuffle(cards.begin(), cards.begin() + numCityCards, random);
+        }
 };
 #endif

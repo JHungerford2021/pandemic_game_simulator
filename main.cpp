@@ -20,6 +20,14 @@ inline int getIntFromUser(const std::string& message)
 
 int main(int argc, char *argv[]) 
 {
-    Game g{"CMQR"};
+    std::vector<Game<0>> games;
+    constexpr int_fast16_t gamesAtOnce = 35000;
+    games.reserve(gamesAtOnce);
+    Timer t;
+    for (int_fast16_t i = 0; i < gamesAtOnce; ++i)
+    {
+        games.emplace_back(Game<0>{"CMQR"});
+    }
+    std::cout << "Time elapsed: " << t.elapsed() << " seconds\n";
     return 0;
 }

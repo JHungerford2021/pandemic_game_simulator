@@ -1,7 +1,7 @@
 #include "gameConstants.h"
 #include "deck.h"
 #include <unordered_set>
-/*
+
 class Player
 {
     private:
@@ -19,7 +19,7 @@ class Player
             int_fast32_t result{0};
             for (const auto& card: cards)
             {   
-                int_fast32_t population = cityPopulations[card.getNumber()];
+                int_fast32_t population = cityPopulations[card.getNumber<int_fast16_t>()];
                 result = !card.isEvent() && population > result ? population : result;
             }
             return result;
@@ -35,4 +35,3 @@ class Player
             cards.erase(card);
         }
 };
-*/

@@ -5,7 +5,32 @@
 #include <string>
 #include <sstream>
 
-template <int_fast64_t seed = 0, int_fast16_t gameDifficulty = 6, int_fast16_t numPlayers = 4>
+class Timer
+{
+private:
+	// Type aliases to make accessing nested type easier
+	using clock_t = std::chrono::high_resolution_clock;
+	using second_t = std::chrono::duration<double, std::ratio<1> >;
+	
+	std::chrono::time_point<clock_t> m_beg;
+ 
+public:
+	Timer() : m_beg(clock_t::now())
+	{
+	}
+	
+	void reset()
+	{
+		m_beg = clock_t::now();
+	}
+	
+	double elapsed() const
+	{
+		return std::chrono::duration_cast<second_t>(clock_t::now() - m_beg).count();
+	}
+};
+
+template <int_fast64_t seed = 0>
 class Game
 {
     private:
@@ -65,8 +90,8 @@ class Game
         std::array<int_fast16_t, maxOutbreaks + gameDifficulty + 1> infectionRates;
         std::unordered_set<Cities> researchStations { Cities::atlanta };
         std::array<Disease, numDiseases> diseases{Color::blue, Color::yellow, Color::black, Color::red};
-        playerDeck<gameDifficulty> pDeck;
-        infectionDeck<gameDifficulty> iDeck;
+        playerDeck pDeck;
+        infectionDeck iDeck;
 
         constexpr void initializeInfectionRates()
         {
@@ -89,33 +114,42 @@ class Game
             std::fill(beginRange, end, currentRate);
         }
 
-        void dealPlayerCards()
+        template <class C>
+        C createDeck()
         {
-            int_fast16_t cardsPerPlayer{cardsIfFour};
+            C result{random};
+            result.beginningShuffle();
+            return result;
+        }
+
+        constexpr int cardsPerPlayer()
+        {
             if (numPlayers == 2)
-            {
-                cardsPerPlayer = cardsIfTwo;
-            }
-            else if (numPlayers == 3)
-            {
-                cardsPerPlayer = cardsIfThree;
-            }
+                return cardsIfTwo;
+            else if  (numPlayers == 3)
+                return cardsIfThree;
+            else
+                return cardsIfFour;
+        }
+
+        inline void dealPlayerCards()
+        {
             for (int_fast16_t player = 0; player < numPlayers; ++player)
             {
-                for (int_fast16_t cardsDealt = 0; cardsDealt < cardsPerPlayer; cardsDealt++)
+                for (int_fast16_t cardsDealt = 0; cardsDealt < cardsPerPlayer(); cardsDealt++)
                 {
                     pDeck.drawCard();
                 }
             }
         }
 
-        void initialInfections()
+        inline void initialInfections()
         {
             for (int_fast16_t wave = 0; wave < numWaves; ++wave)
             {
                 for (int_fast16_t city = 0; city < citiesPerWave; ++city)
                 {
-                    const Card& iCard = iDeck.drawCard();
+                    const infectionCard& iCard = iDeck.drawCard();
                     City target = cities[iCard.getNumber<int_fast16_t>()];
                     target.addInfection(strongestWave - wave, target.color);
                 }
@@ -125,13 +159,11 @@ class Game
     public:
 
         Game(const std::string& roleString)
-            : pDeck{random}, iDeck{random}
+            : pDeck{createDeck<playerDeck>()}, iDeck{createDeck<infectionDeck>()}
         {
-            Timer t;
             initializeInfectionRates();
             dealPlayerCards();
             pDeck.prepareDeck();
             initialInfections();
-            std::cout << "Time elapsed: " << t.elapsed() << " seconds\n";
         }
 };

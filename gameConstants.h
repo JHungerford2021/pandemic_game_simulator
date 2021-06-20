@@ -76,6 +76,8 @@ std::ostream& operator << (std::ostream& lhs, Color rhs)
 }
 
 // Gameplay Constants
+inline constexpr std::int_fast16_t gameDifficulty = 4;
+inline constexpr std::int_fast16_t numPlayers = 4;
 inline constexpr std::int_fast16_t numCities = 48;
 inline constexpr std::int_fast16_t numResearchStations = 6;
 inline constexpr std::int_fast16_t alive = 0;
@@ -160,30 +162,5 @@ inline constexpr std::array<int_fast32_t, numCities> cityPopulations =
 	3785000,
 	8338000,
 	13189000
-};
-
-class Timer
-{
-private:
-	// Type aliases to make accessing nested type easier
-	using clock_t = std::chrono::high_resolution_clock;
-	using second_t = std::chrono::duration<double, std::ratio<1> >;
-	
-	std::chrono::time_point<clock_t> m_beg;
- 
-public:
-	Timer() : m_beg(clock_t::now())
-	{
-	}
-	
-	void reset()
-	{
-		m_beg = clock_t::now();
-	}
-	
-	double elapsed() const
-	{
-		return std::chrono::duration_cast<second_t>(clock_t::now() - m_beg).count();
-	}
 };
 #endif
