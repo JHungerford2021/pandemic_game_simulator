@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     constexpr int_fast16_t gamesAtOnce = 1000;
     games.reserve(gamesAtOnce);
     Timer t;
-    for (int_fast16_t i = 0; i < gamesAtOnce; ++i)
+    for (uint_fast16_t i = 0; i < gamesAtOnce; ++i)
     {
         games.emplace_back(Game<roles>{i});
     }

@@ -87,7 +87,7 @@ class Game
 	        City(std::unordered_set<Cities>{Cities::hongKong, Cities::manila, Cities::osaka, Cities::shanghai}, Color::red),
 	        City(std::unordered_set<Cities>{Cities::sanFrancisco, Cities::osaka, Cities::seoul, Cities::shanghai}, Color::red)
         };
-        std::array<Player, numPlayers> players;
+        //std::array<Player, numPlayers> players;
         std::array<int_fast16_t, maxOutbreaks + gameDifficulty + 1> infectionRates;
         std::unordered_set<Cities> researchStations { Cities::atlanta };
         std::array<Disease, numDiseases> diseases{Color::blue, Color::yellow, Color::black, Color::red};
@@ -183,7 +183,7 @@ class Game
 
     public:
 
-        Game(std::int_fast64_t seed) noexcept
+        Game(uint_fast64_t seed) noexcept
             : random{seed}, pDeck{createDeck<playerDeck>()}, iDeck{createDeck<infectionDeck>()}
         {
             initializeInfectionRates();
