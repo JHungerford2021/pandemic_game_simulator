@@ -5,12 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_INCLUDE_PATH ${CMAKE_BINARY_DIR})
 
-add_executable(pandemic_game_simulator main.cpp)
+add_executable(pandemic_game_simulator src/main.cpp)
 target_include_directories(pandemic_game_simulator PUBLIC
                            "${PROJECT_BINARY_DIR}"
                            )
 
-add_executable(pandemic_game_tests tests.cpp)
+add_executable(pandemic_game_tests src/tests.cpp)
 target_include_directories(pandemic_game_simulator PUBLIC
                            "${PROJECT_BINARY_DIR}"
                            )
