@@ -184,7 +184,7 @@ class Game
     public:
 
         Game(std::int_fast64_t seed) noexcept
-            : random{seed}, pDeck{createDeck<playerDeck>()}, iDeck{createDeck<infectionDeck>()}}
+            : random{seed}, pDeck{createDeck<playerDeck>()}, iDeck{createDeck<infectionDeck>()}
         {
             initializeInfectionRates();
             dealPlayerCards();
