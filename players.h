@@ -1,37 +1,58 @@
 #include "gameConstants.h"
 #include "deck.h"
-#include <unordered_set>
+#include <bitset>
+
 
 class Player
 {
+    friend std::ostream& operator<<(std::ostream& lhs, const Player& rhs)
+    {
+        std::stringstream result{};
+        result << "Role: " << rhs.role << "\nDeck: ";
+        for (int_fast16_t i = 0; i < numPlayerCards; ++i)
+        {
+            if (rhs.cards.test(i))
+                result << i << ' ';
+        }
+        result << "\nLocation: " << rhs.location << std::endl;
+        return lhs << result.str();
+    }
+
     private:
 
-        std::unordered_set<const Card&> cards;
+        std::bitset<numPlayerCards> cards;
         Cities location{Cities::atlanta};
+        Roles role;
 
     public:
 
-        Player()
+        Player(Roles r)
+            :role{r}
         {}
 
         int_fast32_t maxPopulation() const
         {
             int_fast32_t result{0};
-            for (const auto& card: cards)
+            for (int_fast16_t i = 0; i < numCityCards; ++i)
             {   
-                int_fast32_t population = cityPopulations[card.getNumber<int_fast16_t>()];
-                result = !card.isEvent() && population > result ? population : result;
+                if (cards.test(i)) {
+                    int_fast32_t population = cityPopulations[i];
+                    result = population > result ? population : result;
+                }
             }
             return result;
         }
 
-        bool addCard(const Card& card)
+        bool addCard(const playerCard& card)
         {
-            cards.insert(card);
+            cards.set(card.getNumber<int_fast16_t>());
+            if (cards.count() > maxCards)
+                return true;
+            return false;
         }
 
-        void removeCard(const Card& card)
+        void removeCard(const playerCard& card)
         {
-            cards.erase(card);
+            cards.reset(card.getNumber<int_fast16_t>());
         }
 };

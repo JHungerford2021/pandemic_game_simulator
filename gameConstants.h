@@ -70,9 +70,34 @@ enum class Cities : int_fast16_t
     tokyo   
 };
 
-std::ostream& operator << (std::ostream& lhs, Color rhs)
+enum class Events : int_fast16_t
+{
+    airlift = 48,
+    forecast = 49,
+    governmentGrant = 50,
+    oneQuietNight = 51,
+    ResilientPopulation = 52
+};
+
+enum class Roles : char
+{
+    contingencyPlanner = 'C',
+    dispatcher = 'D',
+    medic = 'M',
+    operationsExpert = 'O',
+    quarantineSpecialist = 'Q',
+    researcher = 'R',
+    scientist = 'S'
+};
+
+std::ostream& operator<<(std::ostream& lhs, Color rhs)
 {
     return lhs << static_cast<int_fast16_t>(rhs);
+}
+
+std::ostream& operator<<(std::ostream& lhs, Roles rhs)
+{
+    return lhs << static_cast<char>(rhs);
 }
 
 // Gameplay Constants
@@ -106,6 +131,9 @@ inline constexpr std::int_fast16_t cardsIfFour = 2;
 inline constexpr std::int_fast16_t numWaves = 3;
 inline constexpr std::int_fast16_t strongestWave = 3;
 inline constexpr std::int_fast16_t citiesPerWave = 3;
+
+// Player Constants
+inline constexpr std::int_fast16_t maxCards = 7;
 
 // City Constants
 inline constexpr std::array<int_fast32_t, numCities> cityPopulations = 

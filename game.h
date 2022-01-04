@@ -30,12 +30,12 @@ public:
 	}
 };
 
-template <int_fast64_t seed = 0>
+template <int_fast64_t roles>
 class Game
 {
     private:
 
-        std::mt19937_64 random{seed};
+        std::mt19937_64 random;
         const std::array<City, numCities> cities
         {
             City(std::unordered_set<Cities>{Cities::chicago, Cities::washington, Cities::miami}, Color::blue),
@@ -87,13 +87,36 @@ class Game
 	        City(std::unordered_set<Cities>{Cities::hongKong, Cities::manila, Cities::osaka, Cities::shanghai}, Color::red),
 	        City(std::unordered_set<Cities>{Cities::sanFrancisco, Cities::osaka, Cities::seoul, Cities::shanghai}, Color::red)
         };
+        std::array<Player, numPlayers> players;
         std::array<int_fast16_t, maxOutbreaks + gameDifficulty + 1> infectionRates;
         std::unordered_set<Cities> researchStations { Cities::atlanta };
         std::array<Disease, numDiseases> diseases{Color::blue, Color::yellow, Color::black, Color::red};
         playerDeck pDeck;
         infectionDeck iDeck;
 
-        constexpr void initializeInfectionRates()
+        constexpr std::array<Player, numPlayers> initializeRoles()
+        {
+            std::array<Player, numPlayers> result;
+            int_fast64_t roleBytes = roles;
+            int_fast16_t players = numPlayers;
+            int_fast16_t bitsInByte = 8;
+            constexpr int_fast8_t roleMask = 255;
+            while (players)
+            {
+                result[players] = Player{static_cast<Roles>(roleMask & roleBytes)};
+                roleBytes = roleBytes >> bitsInByte;
+            }
+            return result;
+        }
+
+        std::array<Player, numPlayers> initializePlayers()
+        {
+            std::array<Player, numPlayers> result = initializeRoles();
+            std::shuffle(result.begin(), result.end(), random);
+            return result;
+        }
+
+        constexpr void initializeInfectionRates() noexcept
         {
             int_fast16_t currentRate = minInfectionRate;
             int_fast16_t indiciesToGo = firstRateIncreaseIndex;
@@ -115,24 +138,24 @@ class Game
         }
 
         template <class C>
-        C createDeck()
+        C createDeck() noexcept
         {
             C result{random};
             result.beginningShuffle();
             return result;
         }
 
-        constexpr int cardsPerPlayer()
+        constexpr int cardsPerPlayer() const noexcept
         {
-            if (numPlayers == 2)
+            if constexpr(numPlayers == 2)
                 return cardsIfTwo;
-            else if  (numPlayers == 3)
+            if constexpr(numPlayers == 3)
                 return cardsIfThree;
-            else
+            if constexpr(numPlayers == 4)
                 return cardsIfFour;
         }
 
-        inline void dealPlayerCards()
+        inline void dealPlayerCards() noexcept
         {
             for (int_fast16_t player = 0; player < numPlayers; ++player)
             {
@@ -143,7 +166,7 @@ class Game
             }
         }
 
-        inline void initialInfections()
+        inline void initialInfections() noexcept
         {
             for (int_fast16_t wave = 0; wave < numWaves; ++wave)
             {
@@ -158,8 +181,8 @@ class Game
 
     public:
 
-        Game(const std::string& roleString)
-            : pDeck{createDeck<playerDeck>()}, iDeck{createDeck<infectionDeck>()}
+        Game(std::int_fast64_t seed) noexcept
+            : random{seed}, pDeck{createDeck<playerDeck>()}, iDeck{createDeck<infectionDeck>()}, players{initializePlayers()}
         {
             initializeInfectionRates();
             dealPlayerCards();

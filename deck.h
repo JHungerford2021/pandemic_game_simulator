@@ -10,14 +10,14 @@
 
 class Card
 {
-    friend std::ostream& operator << (std::ostream& lhs, const Card& rhs)
+    friend std::ostream& operator<<(std::ostream& lhs, const Card& rhs)
     {
         return rhs.write(lhs);
     }
 
     private:
 
-        virtual std::ostream& write (std::ostream& lhs) const = 0;
+        virtual std::ostream& write(std::ostream& lhs) const = 0;
 
     protected:
 
@@ -25,25 +25,25 @@ class Card
 
     public:
 
-        constexpr Card() noexcept
+        constexpr Card()
             : cardNumber{epidemicCard}
         {}
 
-        constexpr Card(int_fast16_t n) noexcept
+        constexpr Card(int_fast16_t n)
             : cardNumber{n}
         {}
 
-        constexpr Card(const Card& rhs) noexcept
+        constexpr Card(const Card& rhs)
             : cardNumber{rhs.cardNumber}
         {}
 
-        Card& operator = (const Card& rhs) noexcept
+        Card& operator=(const Card& rhs)
         {
             cardNumber = rhs.cardNumber;
             return *this;
         }
 
-        Card& operator = (Card&& rhs) noexcept
+        Card& operator=(Card&& rhs)
         {
             cardNumber = rhs.cardNumber;
             return *this;
@@ -54,25 +54,21 @@ class Card
         {
             return static_cast<T>(cardNumber);
         }
-
-        virtual bool isEvent() const = 0;
 };
 
 class playerCard : public Card
 {
     private:
 
-        bool event;
-
-        std::ostream& write (std::ostream& lhs) const
+        std::ostream& write(std::ostream& lhs) const
         {
             if (cardNumber == epidemicCard)
             {
                 return lhs << "EP ";
             }
-            else if (event)
+            else if (cardNumber >= numCityCards)
             {
-                return lhs << 'E' << cardNumber << ' ';
+                return lhs << 'E' << cardNumber - numCityCards << ' ';
             }
             else
             {
@@ -83,43 +79,19 @@ class playerCard : public Card
     public:
 
         constexpr playerCard()
-            :event{0}
+            : Card{epidemicCard}
         {}
 
-        constexpr playerCard(int_fast16_t n, bool e = 0)
-            :Card{n}, event{e}
+        constexpr playerCard(int_fast16_t n)
+            : Card{n}
         {}
-
-        constexpr playerCard(const playerCard& rhs)
-            :Card{rhs.cardNumber}, event{rhs.event}
-        {}
-
-        playerCard& operator = (playerCard&& rhs)
-        {
-            cardNumber = rhs.cardNumber;
-            event = rhs.event;
-            return *this;
-        }
-
-        std::size_t operator() (const playerCard&) noexcept const
-        {
-            std::size_t result{cardNumber};
-            if (event)
-                result += numCityCards;
-            return result;
-        }
-
-        bool isEvent() const
-        {
-            return event;
-        }
 };
 
 class infectionCard : public Card
 {
     private:
 
-        std::ostream& write (std::ostream& lhs) const
+        std::ostream& write(std::ostream& lhs) const
         {
             return lhs << cardNumber << ' ';
         }
@@ -127,23 +99,19 @@ class infectionCard : public Card
     public:
 
         constexpr infectionCard()
+            : Card{epidemicCard}
         {}
 
         constexpr infectionCard(int_fast16_t n)
-            :Card{n}
+            : Card{n}
         {}
-        
-        bool isEvent() const
-        {
-            return false;
-        }
 };
 
 template <class C>
 class Deck 
 {
     
-    friend std::ostream& operator << (std::ostream& lhs, Deck& rhs) {
+    friend std::ostream& operator<<(std::ostream& lhs, Deck& rhs) {
         return rhs.write(lhs);
     }
 
@@ -153,7 +121,7 @@ class Deck
 
     public:
 
-        virtual const C& drawCard() noexcept = 0;
+        virtual const C& drawCard() = 0;
         virtual void beginningShuffle() = 0;
 };
 
@@ -196,24 +164,20 @@ class playerDeck: public Deck<playerCard>
 
     public:
 
-        constexpr playerDeck(std::mt19937_64& r) noexcept
+        constexpr playerDeck(std::mt19937_64& r)
             : random{r}
         {
-            for (int_fast16_t i = 0; i < gameDifficulty; ++i)
-            {
-                cards[0] = playerCard{epidemicCard};
-            }
             for (int_fast16_t i = 0; i < numCityCards; ++i)
             {
                 cards[i + gameDifficulty] = playerCard{i};
             }
-            for (int_fast16_t i = 0; i < numEventCards; ++i)
+            for (int_fast16_t i = numCityCards; i < numEventCards + numCityCards; ++i)
             {
-                cards[numCityCards + gameDifficulty + i] = playerCard{i, 1};
+                cards[gameDifficulty + i] = playerCard{i};
             }
         }
 
-        void prepareDeck() noexcept
+        void prepareDeck()
         {
             std::array<int_fast16_t, gameDifficulty> deckSizes = getDeckSizes();
             int_fast16_t index = gameDifficulty - 1;
@@ -229,14 +193,14 @@ class playerDeck: public Deck<playerCard>
             }
         }
 
-        const playerCard& drawCard() noexcept
+        const playerCard& drawCard()
         {
             const playerCard& result = *(cards.begin() + drawIndex);
             --drawIndex;
             return result;
         }
 
-        void beginningShuffle() noexcept
+        void beginningShuffle()
         {
             std::shuffle(cards.begin() + gameDifficulty, cards.end(), random);
         }
@@ -271,7 +235,7 @@ class infectionDeck : public Deck<infectionCard>
 
     public:
 
-        constexpr infectionDeck(std::mt19937_64& r) noexcept
+        constexpr infectionDeck(std::mt19937_64& r)
             : random{r}
         {
             for (int_fast16_t i = 0; i < numCityCards; ++i)
@@ -284,14 +248,14 @@ class infectionDeck : public Deck<infectionCard>
             }
         }
 
-        const Cities infect() noexcept
+        const Cities infect()
         {
             cards[backOfDeck] = cards[epidemicIndex];
             ++backOfDeck;
             return cards[epidemicIndex++].getNumber<Cities>();
         }
 
-        void intensify(Cities cityToRemove, bool removeCity) noexcept
+        void intensify(Cities cityToRemove, bool removeCity)
         {
             if (removeCity)
             {
@@ -304,14 +268,14 @@ class infectionDeck : public Deck<infectionCard>
             drawIndex = backOfDeck - 1;
         }
 
-        const infectionCard& drawCard() noexcept
+        const infectionCard& drawCard()
         {
             const infectionCard& result = *(cards.begin() + drawIndex);
             --drawIndex;
             return result;
         }
 
-        void beginningShuffle() noexcept
+        void beginningShuffle()
         {
             std::shuffle(cards.begin(), cards.begin() + numCityCards, random);
         }
