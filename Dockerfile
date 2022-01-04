@@ -10,5 +10,4 @@ RUN apk add --no-cache git \
     && mkdir build \
     && cmake -S . -B build \
     && make --directory build \
-    && apk del build_dependencies \
-    && apk --purge del apk-tools
+    && apk del build_dependencies
