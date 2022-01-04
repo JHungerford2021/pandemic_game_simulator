@@ -1,16 +1,14 @@
-FROM alpine:latest
+FROM alpine:latest AS builder
 
-RUN apk add --no-cache --virtual build_dependencies \
-    git \
+RUN apk add --no-cache git
+    && apk add --no-cache --virtual build_dependencies \
     g++ \
     make \
-    cmake 
-
-RUN git clone https://github.com/JHungerford2021/pandemic_game_simulator
-
-WORKDIR /pandemic_game_simulator
-
-RUN mkdir build
-RUN cmake -S . -B build; make --directory build
-
-RUN apk --purge del apk-tools
+    cmake
+    && git clone https://github.com/JHungerford2021/pandemic_game_simulator
+    && cd /pandemic_game_simulator
+    && mkdir build
+    && cmake -S . -B build 
+    && make --directory build
+    && apk del build_dependencies
+    && apk --purge del apk-tools
