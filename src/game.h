@@ -94,6 +94,7 @@ class Game
         playerDeck pDeck;
         infectionDeck iDeck;
 
+        /*
         constexpr std::array<Player, numPlayers> initializeRoles()
         {
             std::array<Player, numPlayers> result;
@@ -115,6 +116,7 @@ class Game
             std::shuffle(result.begin(), result.end(), random);
             return result;
         }
+        */
 
         constexpr void initializeInfectionRates() noexcept
         {
@@ -182,7 +184,7 @@ class Game
     public:
 
         Game(std::int_fast64_t seed) noexcept
-            : random{seed}, pDeck{createDeck<playerDeck>()}, iDeck{createDeck<infectionDeck>()}, players{initializePlayers()}
+            : random{seed}, pDeck{createDeck<playerDeck>()}, iDeck{createDeck<infectionDeck>()}}
         {
             initializeInfectionRates();
             dealPlayerCards();
