@@ -11,6 +11,6 @@ RUN git clone https://github.com/JHungerford2021/pandemic_game_simulator
 WORKDIR /pandemic_game_simulator
 
 RUN mkdir build
-RUN cmake -S . -B build; build/make
+RUN cmake -S . -B build; make --directory build
 
 RUN apk del build_dependencies
