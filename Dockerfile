@@ -13,4 +13,4 @@ WORKDIR /pandemic_game_simulator
 RUN mkdir build
 RUN cmake -S . -B build; make --directory build
 
-RUN apk del build_dependencies
+RUN apk --purge del apk-tools
