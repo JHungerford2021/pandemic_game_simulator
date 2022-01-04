@@ -2,6 +2,6 @@
 
 int main(int argc, char *argv[]) 
 {
-    Game g{"CMQR"};
+    Game<0> g{0};
     return 0;
 }
